@@ -4,14 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace shkolo
+namespace Shkolo_console_app.Models
 {
     public class Grade
     {
         // Fields
         private int id;
         private double value;
-        private Subject subject;
+        private Subject subject = null!;
 
         // Properties
         public int Id
@@ -23,7 +23,7 @@ namespace shkolo
         public double Value
         {
             get { return value; }
-            set { value = value; }
+            set { this.value = value; }
         }
 
         public Subject Subject
@@ -31,6 +31,9 @@ namespace shkolo
             get { return subject; }
             set { subject = value; }
         }
+
+        // Empty constructor (needed so JSON can load the data)
+        public Grade() { }
 
         // Constructor
         public Grade(int id, double value, Subject subject)

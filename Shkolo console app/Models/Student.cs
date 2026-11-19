@@ -2,16 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace shkolo
+namespace Shkolo_console_app.Models
 {
     public class Student
     {
         // Fields
         private int id;
-        private string firstName;
-        private string lastName;
-        private string className;
-        private List<Grade> grades;
+        private string firstName = "";
+        private string lastName = "";
+        private string className = "";
+        private List<Grade> grades = new List<Grade>();
 
         // Properties
         public int Id
@@ -43,6 +43,9 @@ namespace shkolo
             get { return grades; }
             set { grades = value; }
         }
+
+        // Empty constructor (needed so JSON can load the data)
+        public Student() { }
 
         // Constructor
         public Student(int id, string firstName, string lastName, string className)

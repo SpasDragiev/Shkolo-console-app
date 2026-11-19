@@ -4,14 +4,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace shkolo
+namespace Shkolo_console_app.Models
 {
     public class School
     {
         // Fields
-        private List<Student> students;
-        private List<Teacher> teachers;
-        private List<Subject> subjects;
+        private List<Student> students = new List<Student>();
+        private List<Teacher> teachers = new List<Teacher>();
+        private List<Subject> subjects = new List<Subject>();
 
         // Properties
         public List<Student> Students
@@ -48,7 +48,7 @@ namespace shkolo
 
         public void RemoveStudent(int id)
         {
-            Student student = FindStudent(id);
+            Student? student = FindStudent(id);
 
             if (student != null)
             {
@@ -56,7 +56,7 @@ namespace shkolo
             }
         }
 
-        public Student FindStudent(int id)
+        public Student? FindStudent(int id)
         {
             foreach (Student student in students)
             {
