@@ -2,7 +2,7 @@
 @inject SchoolStorage Storage
 
 <Rows>
-    <SubTabs Items="@(new[] { "List", "Add student", "Add class", "Add grade", "Details", "Remove" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; ClearInputs(); })" />
+    <SubTabs Items="@(new[] { "List", "Add student", "Add class", "Add grade", "Remove" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; ClearInputs(); })" />
 
     @if (view == "List")
     {
@@ -104,33 +104,6 @@
             }
         </Panel>
     }
-    else if (view == "Details")
-    {
-        <Panel Title="Student details" Border="BoxBorder.Rounded" Expand="true">
-            <Rows>
-                <Select Options="@StudentOptions" @bind-Value="detailsStudent" Placeholder="Choose student to inspect" Expand="true" />
-                @if (DetailsStudent != null)
-                {
-                    <Markup Content="@DetailsStudent.ToString()" Foreground="@Color.Cyan1" Decoration="@Decoration.Bold" />
-                    @if (DetailsStudent.Grades.Count == 0)
-                    {
-                        <Markup Content="No grades yet." Foreground="@Color.Grey70" />
-                    }
-                    else
-                    {
-                        <BarChart Label="Average per subject"
-                                  LabelDecoration="@Decoration.Bold"
-                                  BarChartItems="@ChartItems(DetailsStudent)"
-                                  MaxValue="6"
-                                  ShowValues="true" />
-                        <Markup Content="@("All grades: " + string.Join(", ", DetailsStudent.Grades.Select(g => g.ToString())))"
-                                Foreground="@Color.Grey70" />
-                    }
-                }
-
-            </Rows>
-        </Panel>
-    }
     else
     {
         <Panel Title="Remove student" Border="BoxBorder.Rounded" Expand="true">
@@ -162,7 +135,6 @@
     private string gradeSubject = "";
     private string gradeValue = "";
 
-    private string detailsStudent = "";
     private string removeStudent = "";
     private string removeClass = "";
     private bool confirmRemove;
@@ -179,19 +151,6 @@
     private Student? StudentFromLabel(string label) =>
         School.Students.FirstOrDefault(s => Helpers.Label(s) == label);
 
-    private Student? DetailsStudent => StudentFromLabel(detailsStudent);
-
-    private static List<IBarChartItem> ChartItems(Student student)
-    {
-        return student.Grades
-            .GroupBy(g => g.Subject.Name)
-            .Select(group =>
-            {
-                double avg = group.Average(g => g.Value);
-                return (IBarChartItem)new BarChartItem(group.Key, Math.Round(avg, 2), Helpers.GradeColor(avg));
-            })
-            .ToList();
-    }
 
     private void AddStudent()
     {
@@ -233,7 +192,6 @@
         gradeStudent = "";
         gradeSubject = "";
         gradeValue = "";
-        detailsStudent = "";
         removeStudent = "";
         removeClass = "";
         confirmRemove = false;
@@ -368,12 +326,10 @@
 
         confirmRemove = false;
         confirmRemoveStudent = null;
-        string removedLabel = Helpers.Label(student);
         School.RemoveStudent(student.ClassName, student.Id);
         Storage.Save(School);
         removeStudent = "";
         removeClass = "";
-        if (detailsStudent == removedLabel) detailsStudent = "";
         Show($"{student.FirstName} {student.LastName} removed.", false);
     }
 
