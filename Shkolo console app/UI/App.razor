@@ -1,0 +1,46 @@
+@inject IHostApplicationLifetime Lifetime
+
+<Figlet Content="SHKOLO" Color="@Color.DeepSkyBlue1" />
+<Markup Content="School grade book" Foreground="@Color.Grey70" Decoration="@Decoration.Italic" />
+<Newline />
+
+<Columns>
+    <TextButton Content="  Students  "
+                OnClick="@(() => page = "students")"
+                BackgroundColor="@(page == "students" ? Color.DeepSkyBlue1 : Color.Grey23)"
+                FocusedColor="@Color.Yellow" />
+    <TextButton Content="  Teachers  "
+                OnClick="@(() => page = "teachers")"
+                BackgroundColor="@(page == "teachers" ? Color.DeepSkyBlue1 : Color.Grey23)"
+                FocusedColor="@Color.Yellow" />
+    <TextButton Content="  Subjects  "
+                OnClick="@(() => page = "subjects")"
+                BackgroundColor="@(page == "subjects" ? Color.DeepSkyBlue1 : Color.Grey23)"
+                FocusedColor="@Color.Yellow" />
+    <TextButton Content="  Exit  "
+                OnClick="@(() => Lifetime.StopApplication())"
+                BackgroundColor="@Color.DarkRed"
+                FocusedColor="@Color.Red" />
+</Columns>
+<Newline />
+
+@if (page == "students")
+{
+    <StudentsPage />
+}
+else if (page == "teachers")
+{
+    <TeachersPage />
+}
+else
+{
+    <SubjectsPage />
+}
+
+<Newline />
+<Markup Content="Tab / Shift+Tab: move  |  Enter: press / confirm  |  Arrows: choose in lists  |  Ctrl+C: quit"
+        Foreground="@Color.Grey58" />
+
+@code {
+    private string page = "students";
+}

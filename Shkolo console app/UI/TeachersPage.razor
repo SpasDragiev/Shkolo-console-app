@@ -1,0 +1,112 @@
+@inject School School
+@inject SchoolStorage Storage
+
+<Rows>
+    <SubTabs Items="@(new[] { "List", "Add" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; })" />
+    @if (view == "List")
+    {
+    <Panel Title="Teachers" Border="BoxBorder.Rounded" BorderColor="@Color.Orange1" Expand="true">
+        @if (School.Teachers.Count == 0)
+        {
+            <Markup Content="No teachers yet. Open the Add tab." Foreground="@Color.Grey70" />
+        }
+        else
+        {
+            <SpectreTable Expand="true" Border="TableBorder.Rounded">
+                <SpectreTHead>
+                    <SpectreTR>
+                        <SpectreTH Align="Justify.Left">Id</SpectreTH>
+                        <SpectreTH Align="Justify.Left">Name</SpectreTH>
+                        <SpectreTH Align="Justify.Left">Subject</SpectreTH>
+                    </SpectreTR>
+                </SpectreTHead>
+                <SpectreTBody>
+                    @foreach (Teacher teacher in School.Teachers)
+                    {
+                        <SpectreTR>
+                            <SpectreTD>@teacher.Id</SpectreTD>
+                            <SpectreTD>@teacher.FirstName @teacher.LastName</SpectreTD>
+                            <SpectreTD>
+                                <Markup Content="@teacher.Subject.Name" Foreground="@Color.Magenta1" />
+                            </SpectreTD>
+                        </SpectreTR>
+                    }
+                </SpectreTBody>
+            </SpectreTable>
+        }
+    </Panel>
+
+    }
+    else
+    {
+    <Panel Title="Add teacher" Border="BoxBorder.Rounded" Expand="true">
+        @if (School.Subjects.Count == 0)
+        {
+            <Markup Content="Add a subject first (Subjects tab) - every teacher teaches one." Foreground="@Color.Yellow" />
+        }
+        else
+        {
+            <Rows>
+                <Markup Content="Full Name:" Foreground="@Color.Orange1" Decoration="@Decoration.Bold" />
+                <TextInput @bind-Value="fullName" Placeholder="e.g. Ivan Petrov" Expand="true" />
+                <Markup Content="Subject (press Enter on the button to switch):" Foreground="@Color.Orange1" Decoration="@Decoration.Bold" />
+                <TextButton Content="@($"  < {CurrentSubjectLabel} >  ")"
+                            OnClick="NextSubject"
+                            BackgroundColor="@Color.Grey23"
+                            FocusedColor="@Color.Yellow" />
+                <TextButton Content="  Add teacher  " OnClick="Add" BackgroundColor="@Color.Green" FocusedColor="@Color.Lime" />
+            </Rows>
+        }
+    </Panel>
+    }
+
+    @if (message != "")
+    {
+        <Markup Content="@message" Foreground="@(isError ? Color.Red : Color.Green)" Decoration="@Decoration.Bold" />
+    }
+</Rows>
+
+@code {
+    private string view = "List";
+    private string fullName = "";
+    private string message = "";
+    private bool isError;
+
+    private int subjectIndex;
+
+    private string CurrentSubjectLabel =>
+        School.Subjects.Count == 0 ? "-" : Helpers.Label(School.Subjects[subjectIndex % School.Subjects.Count]);
+
+    private void NextSubject()
+    {
+        if (School.Subjects.Count > 0)
+            subjectIndex = (subjectIndex + 1) % School.Subjects.Count;
+    }
+
+    private void Add()
+    {
+        Subject? subject = School.Subjects.Count == 0 ? null : School.Subjects[subjectIndex % School.Subjects.Count];
+
+        string[] parts = (fullName ?? "").Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (parts.Length < 2)
+            Show("Enter the full name (first and last name).", true);
+        else if (subject == null)
+            Show("Choose a subject.", true);
+        else
+        {
+            int id = Helpers.NextId(School.Teachers.Select(t => t.Id));
+            School.AddTeacher(new Teacher(id, parts[0], parts[1], subject));
+            Storage.Save(School);
+            fullName = "";
+            Show($"Teacher added with id {id}.", false);
+            view = "List";
+        }
+    }
+
+    private void Show(string text, bool error)
+    {
+        message = text;
+        isError = error;
+    }
+}

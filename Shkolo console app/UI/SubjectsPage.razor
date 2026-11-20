@@ -1,0 +1,91 @@
+@inject School School
+@inject SchoolStorage Storage
+
+<Rows>
+    <SubTabs Items="@(new[] { "List", "Add" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; })" />
+    @if (view == "List")
+    {
+    <Panel Title="Subjects" Border="BoxBorder.Rounded" BorderColor="@Color.Magenta1" Expand="true">
+        @if (School.Subjects.Count == 0)
+        {
+            <Markup Content="No subjects yet. Open the Add tab." Foreground="@Color.Grey70" />
+        }
+        else
+        {
+            <SpectreTable Expand="true" Border="TableBorder.Rounded">
+                <SpectreTHead>
+                    <SpectreTR>
+                        <SpectreTH Align="Justify.Left">Id</SpectreTH>
+                        <SpectreTH Align="Justify.Left">Name</SpectreTH>
+                        <SpectreTH Align="Justify.Left">Teachers</SpectreTH>
+                    </SpectreTR>
+                </SpectreTHead>
+                <SpectreTBody>
+                    @foreach (Subject subject in School.Subjects)
+                    {
+                        <SpectreTR>
+                            <SpectreTD>@subject.Id</SpectreTD>
+                            <SpectreTD>
+                                <Markup Content="@subject.Name" Foreground="@Color.Magenta1" Decoration="@Decoration.Bold" />
+                            </SpectreTD>
+                            <SpectreTD>@TeacherNames(subject)</SpectreTD>
+                        </SpectreTR>
+                    }
+                </SpectreTBody>
+            </SpectreTable>
+        }
+    </Panel>
+
+    }
+    else
+    {
+    <Panel Title="Add subject" Border="BoxBorder.Rounded" Expand="true">
+        <Rows>
+            <TextInput Label="Name" @bind-Value="name" Placeholder="e.g. Math" Expand="true" />
+            <TextButton Content="  Add subject  " OnClick="Add" BackgroundColor="@Color.Green" FocusedColor="@Color.Lime" />
+        </Rows>
+    </Panel>
+    }
+
+    @if (message != "")
+    {
+        <Markup Content="@message" Foreground="@(isError ? Color.Red : Color.Green)" Decoration="@Decoration.Bold" />
+    }
+</Rows>
+
+@code {
+    private string view = "List";
+    private string name = "";
+    private string message = "";
+    private bool isError;
+
+    private string TeacherNames(Subject subject)
+    {
+        var names = School.Teachers.Where(t => t.Subject?.Id == subject.Id)
+                                   .Select(t => $"{t.FirstName} {t.LastName}");
+        string text = string.Join(", ", names);
+        return text == "" ? "-" : text;
+    }
+
+    private void Add()
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            Show("Name cannot be empty.", true);
+            return;
+        }
+
+        int id = Helpers.NextId(School.Subjects.Select(s => s.Id));
+        School.AddSubject(new Subject(id, name.Trim()));
+        Storage.Save(School);
+        name = "";
+        Show($"Subject added with id {id}.", false);
+        view = "List";
+    }
+
+    private void Show(string text, bool error)
+    {
+        message = text;
+        isError = error;
+    }
+}

@@ -1,0 +1,324 @@
+@inject School School
+@inject SchoolStorage Storage
+
+<Rows>
+    <SubTabs Items="@(new[] { "List", "Add student", "Add class", "Add grade", "Details", "Remove" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; confirmRemove = false; ResetBulk(); })" />
+
+    @if (view == "List")
+    {
+    <Panel Title="Students" Border="BoxBorder.Rounded" BorderColor="@Color.DeepSkyBlue1" Expand="true">
+        @if (School.Students.Count == 0)
+        {
+            <Markup Content="No students yet. Open the Add student tab." Foreground="@Color.Grey70" />
+        }
+        else
+        {
+            <SpectreTable Expand="true" Border="TableBorder.Rounded">
+                <SpectreTHead>
+                    <SpectreTR>
+                        <SpectreTH Align="Justify.Left">Id</SpectreTH>
+                        <SpectreTH Align="Justify.Left">Name</SpectreTH>
+                        <SpectreTH Align="Justify.Left">Class</SpectreTH>
+                        <SpectreTH Align="Justify.Right">Grades</SpectreTH>
+                        <SpectreTH Align="Justify.Right">Average</SpectreTH>
+                    </SpectreTR>
+                </SpectreTHead>
+                <SpectreTBody>
+                    @foreach (Student student in School.Students)
+                    {
+                        double average = student.GetAverageGrade();
+                        <SpectreTR>
+                            <SpectreTD>@student.Id</SpectreTD>
+                            <SpectreTD>@student.FirstName @student.LastName</SpectreTD>
+                            <SpectreTD>@student.ClassName</SpectreTD>
+                            <SpectreTD>@student.Grades.Count</SpectreTD>
+                            <SpectreTD>
+                                <Markup Content="@(average == 0 ? "-" : average.ToString("F2"))"
+                                        Foreground="@Helpers.GradeColor(average)" Decoration="@Decoration.Bold" />
+                            </SpectreTD>
+                        </SpectreTR>
+                    }
+                </SpectreTBody>
+            </SpectreTable>
+        }
+    </Panel>
+
+    }
+    else if (view == "Add student")
+    {
+    <Panel Title="Add student" Border="BoxBorder.Rounded" Expand="true">
+        <Rows>
+            <Markup Content="Full Name:" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
+            <TextInput @bind-Value="fullName" Placeholder="e.g. Ivan Petrov" Expand="true" />
+            <Markup Content="Class:" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
+            <TextInput @bind-Value="className" Placeholder="e.g. 10A" Expand="true" />
+            <TextButton Content="  Add student  " OnClick="AddStudent" BackgroundColor="@Color.Green" FocusedColor="@Color.Lime" />
+        </Rows>
+    </Panel>
+
+    }
+    else if (view == "Add class")
+    {
+        <Panel Title="Add a whole class" Border="BoxBorder.Rounded" Expand="true">
+            <Rows>
+                @if (!bulkStarted)
+                {
+                    <Markup Content="Class:" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
+                    <TextInput @bind-Value="bulkClass" Placeholder="e.g. 10A" Expand="true" />
+                    <Markup Content="Number of students:" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
+                    <TextInput @bind-Value="bulkCountText" Placeholder="e.g. 15" Expand="true" />
+                    <TextButton Content="  Start  " OnClick="StartBulk" BackgroundColor="@Color.Green" FocusedColor="@Color.Lime" />
+                }
+                else
+                {
+                    <Markup Content="@($"Class {bulkClass} - student {bulkNames.Count + 1} of {bulkCount}")" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
+                    @if (bulkNames.Count > 3)
+                    {
+                        <Markup Content="@($"... {bulkNames.Count - 3} more entered")" Foreground="@Color.Grey70" />
+                    }
+                    @foreach (string entered in bulkNames.Skip(Math.Max(0, bulkNames.Count - 3)))
+                    {
+                        <Markup Content="@("  " + entered)" Foreground="@Color.Green" />
+                    }
+                    <TextInput @key="bulkNames.Count" @bind-Value="bulkCurrent" OnSubmit="SubmitBulkName" Placeholder="Full name, then press Enter" Expand="true" />
+                    <TextButton Content="  Cancel  " OnClick="ResetBulk" BackgroundColor="@Color.DarkRed" FocusedColor="@Color.Red" />
+                }
+            </Rows>
+        </Panel>
+    }
+    else if (view == "Add grade")
+    {
+        <Panel Title="Add grade" Border="BoxBorder.Rounded" Expand="true">
+            @if (School.Subjects.Count == 0)
+            {
+                <Markup Content="Add a subject first (Subjects tab)." Foreground="@Color.Yellow" />
+            }
+            else
+            {
+                <Rows>
+                    <Select Options="@StudentOptions" @bind-Value="gradeStudent" Placeholder="Choose student" Expand="true" />
+                    <Select Options="@SubjectOptions" @bind-Value="gradeSubject" Placeholder="Choose subject" Expand="true" />
+                    <TextInput Label="Grade (2-6)" @bind-Value="gradeValue" Placeholder="e.g. 5.50" Expand="true" />
+                    <TextButton Content="  Add grade  " OnClick="AddGrade" BackgroundColor="@Color.Green" FocusedColor="@Color.Lime" />
+                </Rows>
+            }
+        </Panel>
+    }
+    else if (view == "Details")
+    {
+        <Panel Title="Student details" Border="BoxBorder.Rounded" Expand="true">
+            <Rows>
+                <Select Options="@StudentOptions" @bind-Value="detailsStudent" Placeholder="Choose student to inspect" Expand="true" />
+                @if (DetailsStudent != null)
+                {
+                    <Markup Content="@DetailsStudent.ToString()" Foreground="@Color.Cyan1" Decoration="@Decoration.Bold" />
+                    @if (DetailsStudent.Grades.Count == 0)
+                    {
+                        <Markup Content="No grades yet." Foreground="@Color.Grey70" />
+                    }
+                    else
+                    {
+                        <BarChart Label="Average per subject"
+                                  LabelDecoration="@Decoration.Bold"
+                                  BarChartItems="@ChartItems(DetailsStudent)"
+                                  MaxValue="6"
+                                  ShowValues="true" />
+                        <Markup Content="@("All grades: " + string.Join(", ", DetailsStudent.Grades.Select(g => g.ToString())))"
+                                Foreground="@Color.Grey70" />
+                    }
+                }
+
+            </Rows>
+        </Panel>
+    }
+    else
+    {
+        <Panel Title="Remove student" Border="BoxBorder.Rounded" Expand="true">
+            <Rows>
+                <Markup Content="Student id (from the List tab) or full name:" Foreground="@Color.Red" Decoration="@Decoration.Bold" />
+                <TextInput @bind-Value="removeStudent" OnSubmit="Remove" Placeholder="e.g. 3  or  Ivan Petrov" Expand="true" />
+                <TextButton Content="@(confirmRemove ? "  Click again to CONFIRM removal  " : "  Remove student  ")"
+                            OnClick="Remove"
+                            BackgroundColor="@Color.DarkRed"
+                            FocusedColor="@Color.Red" />
+            </Rows>
+        </Panel>
+    }
+
+    @if (message != "")
+    {
+        <Markup Content="@message" Foreground="@(isError ? Color.Red : Color.Green)" Decoration="@Decoration.Bold" />
+    }
+</Rows>
+
+@code {
+    private string view = "List";
+    private string fullName = "";
+    private string className = "";
+
+    private string gradeStudent = "";
+    private string gradeSubject = "";
+    private string gradeValue = "";
+
+    private string detailsStudent = "";
+    private string removeStudent = "";
+    private bool confirmRemove;
+    private int confirmRemoveId;
+
+    private string message = "";
+    private bool isError;
+
+    private string[] StudentOptions => School.Students.Select(Helpers.Label).ToArray();
+    private string[] SubjectOptions => School.Subjects.Select(Helpers.Label).ToArray();
+
+    private Student? DetailsStudent => School.FindStudent(Helpers.ParseId(detailsStudent));
+
+    private static List<IBarChartItem> ChartItems(Student student)
+    {
+        return student.Grades
+            .GroupBy(g => g.Subject.Name)
+            .Select(group =>
+            {
+                double avg = group.Average(g => g.Value);
+                return (IBarChartItem)new BarChartItem(group.Key, Math.Round(avg, 2), Helpers.GradeColor(avg));
+            })
+            .ToList();
+    }
+
+    private void AddStudent()
+    {
+        string[] parts = (fullName ?? "").Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length < 2)
+        {
+            Show("Enter the full name (first and last name).", true);
+            return;
+        }
+
+        int id = Helpers.NextId(School.Students.Select(s => s.Id));
+        School.AddStudent(new Student(id, parts[0], parts[1], className.Trim()));
+        Storage.Save(School);
+        fullName = "";
+        className = "";
+        Show($"Student added with id {id}.", false);
+        view = "List";
+    }
+
+    private string bulkClass = "";
+    private string bulkCountText = "";
+    private int bulkCount;
+    private bool bulkStarted;
+    private string bulkCurrent = "";
+    private List<string> bulkNames = [];
+
+    private void ResetBulk()
+    {
+        bulkStarted = false;
+        bulkClass = "";
+        bulkCountText = "";
+        bulkCurrent = "";
+        bulkCount = 0;
+        bulkNames = [];
+    }
+
+    private void StartBulk()
+    {
+        if (string.IsNullOrWhiteSpace(bulkClass))
+            Show("Enter the class (e.g. 10A).", true);
+        else if (!int.TryParse(bulkCountText.Trim(), out bulkCount) || bulkCount < 1 || bulkCount > 100)
+            Show("Number of students must be between 1 and 100.", true);
+        else
+        {
+            bulkClass = bulkClass.Trim();
+            bulkNames = [];
+            bulkCurrent = "";
+            bulkStarted = true;
+            message = "";
+        }
+    }
+
+    private void SubmitBulkName()
+    {
+        string[] parts = (bulkCurrent ?? "").Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length < 2)
+        {
+            Show("Enter the full name (first and last name).", true);
+            return;
+        }
+
+        bulkNames.Add(string.Join(' ', parts));
+        bulkCurrent = "";
+        message = "";
+
+        if (bulkNames.Count < bulkCount) return;
+
+        foreach (string name in bulkNames)
+        {
+            string[] p = name.Split(' ', 2);
+            int id = Helpers.NextId(School.Students.Select(s => s.Id));
+            School.AddStudent(new Student(id, p[0], p[1], bulkClass));
+        }
+        Storage.Save(School);
+        string text = $"Class {bulkClass}: {bulkNames.Count} students added.";
+        ResetBulk();
+        Show(text, false);
+        view = "List";
+    }
+
+    private void AddGrade()
+    {
+        Student? student = School.FindStudent(Helpers.ParseId(gradeStudent));
+        Subject? subject = School.Subjects.FirstOrDefault(s => s.Id == Helpers.ParseId(gradeSubject));
+
+        if (student == null)
+            Show("Choose a student.", true);
+        else if (subject == null)
+            Show("Choose a subject.", true);
+        else if (!Helpers.TryParseGrade(gradeValue, out double value) || value < 2 || value > 6)
+            Show("Grade must be a number between 2 and 6.", true);
+        else
+        {
+            int id = Helpers.NextId(School.Students.SelectMany(s => s.Grades).Select(g => g.Id));
+            student.AddGrade(new Grade(id, value, subject));
+            Storage.Save(School);
+            gradeValue = "";
+            Show($"Grade {value:0.##} in {subject.Name} added to {student.FirstName}.", false);
+        }
+    }
+
+    private void Remove()
+    {
+        string query = (removeStudent ?? "").Trim();
+        Student? student = int.TryParse(query, out int queryId)
+            ? School.FindStudent(queryId)
+            : School.Students.FirstOrDefault(s =>
+                string.Equals($"{s.FirstName} {s.LastName}", query, StringComparison.OrdinalIgnoreCase));
+
+        if (student == null)
+        {
+            confirmRemove = false;
+            Show("No student found with that id or full name.", true);
+            return;
+        }
+
+        if (!confirmRemove || confirmRemoveId != student.Id)
+        {
+            confirmRemove = true;
+            confirmRemoveId = student.Id;
+            Show($"Remove {student.FirstName} {student.LastName} ({student.ClassName})? Press the button again to confirm.", true);
+            return;
+        }
+
+        confirmRemove = false;
+        School.RemoveStudent(student.Id);
+        Storage.Save(School);
+        removeStudent = "";
+        if (Helpers.ParseId(detailsStudent) == student.Id) detailsStudent = "";
+        Show($"{student.FirstName} {student.LastName} removed.", false);
+    }
+
+    private void Show(string text, bool error)
+    {
+        message = text;
+        isError = error;
+    }
+}
