@@ -2,7 +2,7 @@
 @inject SchoolStorage Storage
 
 <Rows>
-    <SubTabs Items="@(new[] { "List", "Add" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; })" />
+    <SubTabs Items="@(new[] { "List", "Add" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; fullName = ""; })" />
     @if (view == "List")
     {
     <Panel Title="Teachers" Border="BoxBorder.Rounded" BorderColor="@Color.Orange1" Expand="true">
@@ -48,7 +48,7 @@
         {
             <Rows>
                 <Markup Content="Full Name:" Foreground="@Color.Orange1" Decoration="@Decoration.Bold" />
-                <TextInput @bind-Value="fullName" Placeholder="e.g. Ivan Petrov" Expand="true" />
+                <FormInput @bind-Value="fullName" Placeholder="e.g. Ivan Petrov" Expand="true" />
                 <Markup Content="Subject (press Enter on the button to switch):" Foreground="@Color.Orange1" Decoration="@Decoration.Bold" />
                 <TextButton Content="@($"  < {CurrentSubjectLabel} >  ")"
                             OnClick="NextSubject"

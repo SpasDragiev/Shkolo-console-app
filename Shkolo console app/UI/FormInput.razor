@@ -1,0 +1,51 @@
+@* Use this instead of <TextInput> for EVERY text box in the app.
+   The plain TextInput keeps showing its old text when the bound variable is cleared from code
+   (after adding / removing something, or when switching tabs). This wrapper re-creates the
+   TextInput whenever the value is changed from outside, so the box really becomes empty. *@
+@implements IDisposable
+@inject NavigationState Nav
+
+@if (Label == null)
+{
+    <TextInput @key="version" Value="@Value" ValueChanged="@Changed" Placeholder="@Placeholder"
+               OnFocus="@(() => Nav.BoxFocused = true)" OnBlur="@(() => Nav.BoxFocused = false)"
+               OnSubmit="@(() => OnSubmit.InvokeAsync())" Expand="@Expand" />
+}
+else
+{
+    <TextInput @key="version" Value="@Value" ValueChanged="@Changed" Label="@Label" Placeholder="@Placeholder"
+               OnFocus="@(() => Nav.BoxFocused = true)" OnBlur="@(() => Nav.BoxFocused = false)"
+               OnSubmit="@(() => OnSubmit.InvokeAsync())" Expand="@Expand" />
+}
+
+@code {
+    // BoxFocused lets the key interceptor know a text box is focused (see NavigationState).
+    // OnFocus/OnBlur set the flag; if the box disappears while focused, reset it here.
+    public void Dispose() => Nav.BoxFocused = false;
+
+    [Parameter] public string Value { get; set; } = "";
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "";
+    [Parameter] public bool Expand { get; set; }
+    [Parameter] public EventCallback OnSubmit { get; set; }
+
+    private int version;
+    private string lastTyped = "";
+
+    protected override void OnParametersSet()
+    {
+        // Value differs from what the user last typed -> it was changed from code (e.g. cleared).
+        if ((Value ?? "") != lastTyped)
+        {
+            lastTyped = Value ?? "";
+            version++;
+        }
+    }
+
+    private async Task Changed(string newValue)
+    {
+        lastTyped = newValue ?? "";
+        await ValueChanged.InvokeAsync(newValue);
+    }
+}

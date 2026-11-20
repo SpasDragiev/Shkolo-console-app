@@ -1,11 +1,14 @@
+@implements IDisposable
+@inject NavigationState Nav
+
 <Columns>
-    @foreach (string item in Items)
+    @for (int i = 0; i < Items.Length; i++)
     {
-        string current = item;
-        <TextButton Content="@($" {current} ")"
-                    OnClick="@(() => Select(current))"
-                    BackgroundColor="@(current == Selected ? Color.Green : Color.Grey19)"
-                    FocusedColor="@Color.Yellow" />
+        string current = Items[i];
+        @* Plain text, not buttons: Tab must skip the tabs. They are used with the 1-9 keys only. *@
+        <Markup Content="@($" {i + 1} {current} ")"
+                Foreground="@Color.White"
+                Background="@(current == Selected ? Color.Green : Color.Grey19)" />
     }
 </Columns>
 
@@ -13,6 +16,20 @@
     [Parameter] public string[] Items { get; set; } = Array.Empty<string>();
     [Parameter] public string Selected { get; set; } = "";
     [Parameter] public EventCallback<string> SelectedChanged { get; set; }
+
+    protected override void OnInitialized() => Nav.HotKeyPressed += OnHotKey;
+    public void Dispose() => Nav.HotKeyPressed -= OnHotKey;
+
+    // Keys 1-9 open the matching tab of the page that is currently shown.
+    private void OnHotKey(string key)
+    {
+        if (key.Length == 1 && char.IsDigit(key[0]))
+        {
+            int index = key[0] - '1';
+            if (index >= 0 && index < Items.Length)
+                _ = InvokeAsync(() => Select(Items[index]));
+        }
+    }
 
     private async Task Select(string item)
     {

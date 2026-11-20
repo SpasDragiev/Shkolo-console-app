@@ -1,34 +1,28 @@
+@implements IDisposable
 @inject IHostApplicationLifetime Lifetime
+@inject NavigationState Nav
 
 <Figlet Content="SHKOLO" Color="@Color.DeepSkyBlue1" />
 <Markup Content="School grade book" Foreground="@Color.Grey70" Decoration="@Decoration.Italic" />
 <Newline />
 
 <Columns>
-    <TextButton Content="  Students  "
-                OnClick="@(() => page = "students")"
-                BackgroundColor="@(page == "students" ? Color.DeepSkyBlue1 : Color.Grey23)"
-                FocusedColor="@Color.Yellow" />
-    <TextButton Content="  Teachers  "
-                OnClick="@(() => page = "teachers")"
-                BackgroundColor="@(page == "teachers" ? Color.DeepSkyBlue1 : Color.Grey23)"
-                FocusedColor="@Color.Yellow" />
-    <TextButton Content="  Subjects  "
-                OnClick="@(() => page = "subjects")"
-                BackgroundColor="@(page == "subjects" ? Color.DeepSkyBlue1 : Color.Grey23)"
-                FocusedColor="@Color.Yellow" />
-    <TextButton Content="  Exit  "
-                OnClick="@(() => Lifetime.StopApplication())"
-                BackgroundColor="@Color.DarkRed"
-                FocusedColor="@Color.Red" />
+    @* Plain text, not buttons: Tab must skip the menu. It is used with the F-keys only. *@
+    @foreach (var item in menu)
+    {
+        var current = item;
+        <Markup Content="@($" {current.Key} {current.Title} ")"
+                Foreground="@Color.White"
+                Background="@(current.Key == "F4" ? Color.DarkRed : page == current.Key ? Color.DeepSkyBlue1 : Color.Grey23)" />
+    }
 </Columns>
 <Newline />
 
-@if (page == "students")
+@if (page == "F1")
 {
     <StudentsPage />
 }
-else if (page == "teachers")
+else if (page == "F2")
 {
     <TeachersPage />
 }
@@ -38,9 +32,39 @@ else
 }
 
 <Newline />
-<Markup Content="Tab / Shift+Tab: move  |  Enter: press / confirm  |  Arrows: choose in lists  |  Ctrl+C: quit"
+<Markup Content="F1-F4: top menu  |  1-9: tabs below  |  Tab / Shift+Tab: move  |  Enter: press / confirm  |  Arrows: choose in lists  |  Ctrl+C: quit"
         Foreground="@Color.Grey58" />
 
 @code {
-    private string page = "students";
+    // Top menu. To add a page later: add a line here (next free F-key) and a branch in the if above.
+    private static readonly (string Key, string Title)[] menu =
+    {
+        ("F1", "Students"),
+        ("F2", "Teachers"),
+        ("F3", "Subjects"),
+        ("F4", "Exit"),
+    };
+
+    private string page = "F1";
+
+    protected override void OnInitialized() => Nav.HotKeyPressed += OnHotKey;
+    public void Dispose() => Nav.HotKeyPressed -= OnHotKey;
+
+    private void OnHotKey(string key)
+    {
+        if (menu.Any(m => m.Key == key))
+            _ = InvokeAsync(() => Open(key));
+    }
+
+    private void Open(string key)
+    {
+        if (key == "F4")
+        {
+            Lifetime.StopApplication();
+            return;
+        }
+
+        page = key;
+        StateHasChanged();
+    }
 }

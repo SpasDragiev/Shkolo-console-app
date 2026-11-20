@@ -35,6 +35,11 @@ var host = Host.CreateDefaultBuilder(args)
         services.AddSingleton(school);
     })
     .UseRazorConsole<App>()
+    .ConfigureServices(services =>
+    {
+        // Wrap RazorConsole's console input so F-keys and 1-9 work as shortcuts.
+        HotKeyInput.Install(services);
+    })
     .Build();
 
 await host.RunAsync();

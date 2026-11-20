@@ -2,7 +2,7 @@
 @inject SchoolStorage Storage
 
 <Rows>
-    <SubTabs Items="@(new[] { "List", "Add student", "Add class", "Add grade", "Details", "Remove" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; confirmRemove = false; ResetBulk(); })" />
+    <SubTabs Items="@(new[] { "List", "Add student", "Add class", "Add grade", "Details", "Remove" })" Selected="@view" SelectedChanged="@((string v) => { view = v; message = ""; ClearInputs(); })" />
 
     @if (view == "List")
     {
@@ -16,21 +16,21 @@
             <SpectreTable Expand="true" Border="TableBorder.Rounded">
                 <SpectreTHead>
                     <SpectreTR>
-                        <SpectreTH Align="Justify.Left">Id</SpectreTH>
-                        <SpectreTH Align="Justify.Left">Name</SpectreTH>
                         <SpectreTH Align="Justify.Left">Class</SpectreTH>
+                        <SpectreTH Align="Justify.Right">No.</SpectreTH>
+                        <SpectreTH Align="Justify.Left">Name</SpectreTH>
                         <SpectreTH Align="Justify.Right">Grades</SpectreTH>
                         <SpectreTH Align="Justify.Right">Average</SpectreTH>
                     </SpectreTR>
                 </SpectreTHead>
                 <SpectreTBody>
-                    @foreach (Student student in School.Students)
+                    @foreach (Student student in School.Students.OrderBy(s => s.ClassName, StringComparer.OrdinalIgnoreCase).ThenBy(s => s.Id))
                     {
                         double average = student.GetAverageGrade();
                         <SpectreTR>
+                            <SpectreTD>@student.ClassName</SpectreTD>
                             <SpectreTD>@student.Id</SpectreTD>
                             <SpectreTD>@student.FirstName @student.LastName</SpectreTD>
-                            <SpectreTD>@student.ClassName</SpectreTD>
                             <SpectreTD>@student.Grades.Count</SpectreTD>
                             <SpectreTD>
                                 <Markup Content="@(average == 0 ? "-" : average.ToString("F2"))"
@@ -49,9 +49,9 @@
     <Panel Title="Add student" Border="BoxBorder.Rounded" Expand="true">
         <Rows>
             <Markup Content="Full Name:" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
-            <TextInput @bind-Value="fullName" Placeholder="e.g. Ivan Petrov" Expand="true" />
+            <FormInput @bind-Value="fullName" Placeholder="e.g. Ivan Petrov" Expand="true" />
             <Markup Content="Class:" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
-            <TextInput @bind-Value="className" Placeholder="e.g. 10A" Expand="true" />
+            <FormInput @bind-Value="className" Placeholder="e.g. 10A" Expand="true" />
             <TextButton Content="  Add student  " OnClick="AddStudent" BackgroundColor="@Color.Green" FocusedColor="@Color.Lime" />
         </Rows>
     </Panel>
@@ -64,9 +64,9 @@
                 @if (!bulkStarted)
                 {
                     <Markup Content="Class:" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
-                    <TextInput @bind-Value="bulkClass" Placeholder="e.g. 10A" Expand="true" />
+                    <FormInput @bind-Value="bulkClass" Placeholder="e.g. 10A" Expand="true" />
                     <Markup Content="Number of students:" Foreground="@Color.DeepSkyBlue1" Decoration="@Decoration.Bold" />
-                    <TextInput @bind-Value="bulkCountText" Placeholder="e.g. 15" Expand="true" />
+                    <FormInput @bind-Value="bulkCountText" Placeholder="e.g. 15" Expand="true" />
                     <TextButton Content="  Start  " OnClick="StartBulk" BackgroundColor="@Color.Green" FocusedColor="@Color.Lime" />
                 }
                 else
@@ -80,7 +80,7 @@
                     {
                         <Markup Content="@("  " + entered)" Foreground="@Color.Green" />
                     }
-                    <TextInput @key="bulkNames.Count" @bind-Value="bulkCurrent" OnSubmit="SubmitBulkName" Placeholder="Full name, then press Enter" Expand="true" />
+                    <FormInput @key="bulkNames.Count" @bind-Value="bulkCurrent" OnSubmit="SubmitBulkName" Placeholder="Full name, then press Enter" Expand="true" />
                     <TextButton Content="  Cancel  " OnClick="ResetBulk" BackgroundColor="@Color.DarkRed" FocusedColor="@Color.Red" />
                 }
             </Rows>
@@ -98,7 +98,7 @@
                 <Rows>
                     <Select Options="@StudentOptions" @bind-Value="gradeStudent" Placeholder="Choose student" Expand="true" />
                     <Select Options="@SubjectOptions" @bind-Value="gradeSubject" Placeholder="Choose subject" Expand="true" />
-                    <TextInput Label="Grade (2-6)" @bind-Value="gradeValue" Placeholder="e.g. 5.50" Expand="true" />
+                    <FormInput Label="Grade (2-6)" @bind-Value="gradeValue" Placeholder="e.g. 5.50" Expand="true" />
                     <TextButton Content="  Add grade  " OnClick="AddGrade" BackgroundColor="@Color.Green" FocusedColor="@Color.Lime" />
                 </Rows>
             }
@@ -135,8 +135,10 @@
     {
         <Panel Title="Remove student" Border="BoxBorder.Rounded" Expand="true">
             <Rows>
-                <Markup Content="Student id (from the List tab) or full name:" Foreground="@Color.Red" Decoration="@Decoration.Bold" />
-                <TextInput @bind-Value="removeStudent" OnSubmit="Remove" Placeholder="e.g. 3  or  Ivan Petrov" Expand="true" />
+                <Markup Content="Class:" Foreground="@Color.Red" Decoration="@Decoration.Bold" />
+                <FormInput @bind-Value="removeClass" Placeholder="e.g. 10E" Expand="true" />
+                <Markup Content="Number in class or full name:" Foreground="@Color.Red" Decoration="@Decoration.Bold" />
+                <FormInput @bind-Value="removeStudent" OnSubmit="Remove" Placeholder="e.g. 3  or  Ivan Petrov" Expand="true" />
                 <TextButton Content="@(confirmRemove ? "  Click again to CONFIRM removal  " : "  Remove student  ")"
                             OnClick="Remove"
                             BackgroundColor="@Color.DarkRed"
@@ -162,16 +164,22 @@
 
     private string detailsStudent = "";
     private string removeStudent = "";
+    private string removeClass = "";
     private bool confirmRemove;
-    private int confirmRemoveId;
+    private Student? confirmRemoveStudent;
 
     private string message = "";
     private bool isError;
 
-    private string[] StudentOptions => School.Students.Select(Helpers.Label).ToArray();
+    private string[] StudentOptions => School.Students
+        .OrderBy(s => s.ClassName, StringComparer.OrdinalIgnoreCase).ThenBy(s => s.Id)
+        .Select(Helpers.Label).ToArray();
     private string[] SubjectOptions => School.Subjects.Select(Helpers.Label).ToArray();
 
-    private Student? DetailsStudent => School.FindStudent(Helpers.ParseId(detailsStudent));
+    private Student? StudentFromLabel(string label) =>
+        School.Students.FirstOrDefault(s => Helpers.Label(s) == label);
+
+    private Student? DetailsStudent => StudentFromLabel(detailsStudent);
 
     private static List<IBarChartItem> ChartItems(Student student)
     {
@@ -194,12 +202,19 @@
             return;
         }
 
-        int id = Helpers.NextId(School.Students.Select(s => s.Id));
-        School.AddStudent(new Student(id, parts[0], parts[1], className.Trim()));
+        if (string.IsNullOrWhiteSpace(className))
+        {
+            Show("Enter the class (e.g. 10E).", true);
+            return;
+        }
+
+        string cls = className.Trim();
+        int number = School.NextStudentNumber(cls);
+        School.AddStudent(new Student(number, parts[0], parts[1], cls));
         Storage.Save(School);
         fullName = "";
         className = "";
-        Show($"Student added with id {id}.", false);
+        Show($"Student added to {cls} with number {number}.", false);
         view = "List";
     }
 
@@ -209,6 +224,22 @@
     private bool bulkStarted;
     private string bulkCurrent = "";
     private List<string> bulkNames = [];
+
+    // Empties every input so nothing typed earlier is still there when a tab is opened.
+    private void ClearInputs()
+    {
+        fullName = "";
+        className = "";
+        gradeStudent = "";
+        gradeSubject = "";
+        gradeValue = "";
+        detailsStudent = "";
+        removeStudent = "";
+        removeClass = "";
+        confirmRemove = false;
+        confirmRemoveStudent = null;
+        ResetBulk();
+    }
 
     private void ResetBulk()
     {
@@ -254,8 +285,7 @@
         foreach (string name in bulkNames)
         {
             string[] p = name.Split(' ', 2);
-            int id = Helpers.NextId(School.Students.Select(s => s.Id));
-            School.AddStudent(new Student(id, p[0], p[1], bulkClass));
+            School.AddStudent(new Student(School.NextStudentNumber(bulkClass), p[0], p[1], bulkClass));
         }
         Storage.Save(School);
         string text = $"Class {bulkClass}: {bulkNames.Count} students added.";
@@ -266,7 +296,7 @@
 
     private void AddGrade()
     {
-        Student? student = School.FindStudent(Helpers.ParseId(gradeStudent));
+        Student? student = StudentFromLabel(gradeStudent);
         Subject? subject = School.Subjects.FirstOrDefault(s => s.Id == Helpers.ParseId(gradeSubject));
 
         if (student == null)
@@ -288,31 +318,62 @@
     private void Remove()
     {
         string query = (removeStudent ?? "").Trim();
-        Student? student = int.TryParse(query, out int queryId)
-            ? School.FindStudent(queryId)
-            : School.Students.FirstOrDefault(s =>
-                string.Equals($"{s.FirstName} {s.LastName}", query, StringComparison.OrdinalIgnoreCase));
+        string cls = (removeClass ?? "").Trim();
+        bool hasClass = cls != "";
+        Student? student;
+
+        if (int.TryParse(query, out int number))
+        {
+            // A number only means something together with its class.
+            if (!hasClass)
+            {
+                confirmRemove = false;
+                Show("Enter the class - the same number exists in every class.", true);
+                return;
+            }
+            student = School.FindStudent(cls, number);
+        }
+        else
+        {
+            List<Student> matches = School.Students
+                .Where(s => string.Equals($"{s.FirstName} {s.LastName}", query, StringComparison.OrdinalIgnoreCase)
+                            && (!hasClass || string.Equals(s.ClassName, cls, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            if (matches.Count > 1)
+            {
+                confirmRemove = false;
+                Show($"{matches.Count} students match - enter the class or use the number in class.", true);
+                return;
+            }
+            student = matches.FirstOrDefault();
+        }
 
         if (student == null)
         {
             confirmRemove = false;
-            Show("No student found with that id or full name.", true);
+            Show(hasClass
+                ? "No student found with that number/name in that class."
+                : "No student found with that full name.", true);
             return;
         }
 
-        if (!confirmRemove || confirmRemoveId != student.Id)
+        if (!confirmRemove || confirmRemoveStudent != student)
         {
             confirmRemove = true;
-            confirmRemoveId = student.Id;
-            Show($"Remove {student.FirstName} {student.LastName} ({student.ClassName})? Press the button again to confirm.", true);
+            confirmRemoveStudent = student;
+            Show($"Remove {student.ClassName} no. {student.Id} - {student.FirstName} {student.LastName}? Press the button again to confirm.", true);
             return;
         }
 
         confirmRemove = false;
-        School.RemoveStudent(student.Id);
+        confirmRemoveStudent = null;
+        string removedLabel = Helpers.Label(student);
+        School.RemoveStudent(student.ClassName, student.Id);
         Storage.Save(School);
         removeStudent = "";
-        if (Helpers.ParseId(detailsStudent) == student.Id) detailsStudent = "";
+        removeClass = "";
+        if (detailsStudent == removedLabel) detailsStudent = "";
         Show($"{student.FirstName} {student.LastName} removed.", false);
     }
 

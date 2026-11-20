@@ -46,9 +46,11 @@ namespace Shkolo_console_app.Models
             students.Add(student);
         }
 
-        public void RemoveStudent(int id)
+        // A student's Id is his number inside the class (1, 2, 3...), so it is only
+        // unique together with the class name (10A no. 1 and 10B no. 1 both exist).
+        public void RemoveStudent(string className, int number)
         {
-            Student? student = FindStudent(id);
+            Student? student = FindStudent(className, number);
 
             if (student != null)
             {
@@ -56,17 +58,28 @@ namespace Shkolo_console_app.Models
             }
         }
 
-        public Student? FindStudent(int id)
+        public Student? FindStudent(string className, int number)
         {
             foreach (Student student in students)
             {
-                if (student.Id == id)
+                if (student.Id == number &&
+                    string.Equals(student.ClassName, className, StringComparison.OrdinalIgnoreCase))
                 {
                     return student;
                 }
             }
 
             return null;
+        }
+
+        // Next free number in the given class (starts from 1 for every class).
+        public int NextStudentNumber(string className)
+        {
+            return students
+                .Where(s => string.Equals(s.ClassName, className, StringComparison.OrdinalIgnoreCase))
+                .Select(s => s.Id)
+                .DefaultIfEmpty(0)
+                .Max() + 1;
         }
 
         public void AddTeacher(Teacher teacher)

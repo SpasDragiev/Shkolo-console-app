@@ -16,7 +16,8 @@ public static class Helpers
         return int.TryParse(label.Split(' ')[0], out int id) ? id : -1;
     }
 
-    public static string Label(Student s) => $"{s.Id} - {s.FirstName} {s.LastName} ({s.ClassName})";
+    // Students are identified by class + number in class, e.g. "10E 1 - Ivan Petrov".
+    public static string Label(Student s) => $"{s.ClassName} {s.Id} - {s.FirstName} {s.LastName}";
     public static string Label(Subject s) => $"{s.Id} - {s.Name}";
 
     public static bool TryParseGrade(string? text, out double value)
